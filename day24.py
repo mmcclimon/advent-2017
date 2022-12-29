@@ -1,6 +1,7 @@
 #!python3
 
-from collections import defaultdict
+from collections import defaultdict, deque
+
 
 class Component(object):
     def __init__(self, line):
@@ -9,24 +10,20 @@ class Component(object):
     def __repr__(self):
         return '<Component %s>' % self.ports
 
-    def has_port(self, n):
-        return n in self.ports
+    def other(self, n):
+        """Return the port that's not number n: for 0/2, comp.other(0)
+        returns 2; for 2/2, comp.other(2) returns 2."""
+        p = self.ports
+        return p[1] if p[0] == n else p[0]
 
-    def as_tuple(self):
-        return tuple(self.ports)
+    def value(self):
+        return sum(self.ports)
 
-input_lines = [
-    '0/2',
-    '2/2',
-    '2/3',
-    '3/4',
-    '3/5',
-    '0/1',
-    '10/1',
-    '9/10',
-]
 
-components = [ Component(l) for l in input_lines ]
+with open('input/day24.txt') as f:
+    input_lines = [line.strip() for line in f.readlines()]
+
+components = [Component(line) for line in input_lines]
 
 # generate a lookup by port
 by_port = defaultdict(list)
@@ -34,20 +31,31 @@ for c in components:
     for p in c.ports:
         by_port[p].append(c)
 
-# dfs
-def dfs(graph, comp):
-    S = []
-    S.append(comp)
-    seen = {}
 
-    while len(S) > 0:
-        this_comp = S.pop()
-        if this_comp not in seen:
-            seen[this_comp] = True
-            # get all the nodes that are adjacent to this one, by some metric.
-            for 
+strongest = 0
+by_len = defaultdict(list)
 
-    return seen.keys()
+# start with all the zeros
+q = deque()
+for comp in by_port[0]:
+    q.append(([comp], comp.other(0)))
 
-print(dfs(components, components[0]))
+# process the queue until we're done
+while len(q) > 0:
+    bridge, tail = q.popleft()
+    total = sum([c.value() for c in bridge])
 
+    strongest = max(strongest, total)
+    by_len[len(bridge)].append(total)
+
+    for comp in by_port[tail]:
+        if comp in bridge:
+            continue
+        q.append((bridge + [comp], comp.other(tail)))
+
+# do part two bookkeeping
+longest = max(by_len.keys())
+strong_long = max(by_len[longest])
+
+print(f"part 1: {strongest}")
+print(f"part 2: {strong_long}")
